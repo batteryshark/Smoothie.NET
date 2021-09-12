@@ -139,15 +139,17 @@ namespace Smoothie
         {
             if (!src_root.EndsWith("\\")) { src_root += "\\"; }
             String mapped_base = ResolvePath(map_root, virtual_root);
+            if (!Directory.Exists(mapped_base))
+            {
+                Directory.CreateDirectory(mapped_base);
+            }
             string[] entries = Directory.GetFileSystemEntries(src_root, "*", SearchOption.AllDirectories);
 
             foreach (var entry in entries)
             {
-                String rebased_path = RebasePath(entry, src_root, mapped_base);
-
                 if (IsDirectory(entry))
                 {
-                    Directory.CreateDirectory(rebased_path);
+                    Directory.CreateDirectory(RebasePath(entry, src_root, mapped_base));
                 }
             }
 
@@ -158,7 +160,12 @@ namespace Smoothie
                 {
                     if (File.Exists(rebased_path) || IsSymlink(rebased_path))
                     {
-                        File.Delete(rebased_path);
+                        try
+                        {
+                            File.Delete(rebased_path);
+                        }
+                        catch { 
+                        }
                     }
                     Directory.CreateDirectory(Directory.GetParent(entry).FullName);
                     CreateSymlink(entry, rebased_path);
