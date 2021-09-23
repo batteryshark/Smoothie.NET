@@ -18,6 +18,11 @@ namespace Smoothie
 
         public static String ResolveContentPath(String content_root, String image_filename)
         {
+            // If it's a literal path, we'll return that instead.
+            if(File.Exists(image_filename) || Directory.Exists(image_filename))
+            {
+                return image_filename;
+            }
             // Resolve a content path based on local or global root.
             String local_path = Path.Combine(content_root, image_filename);
             if (File.Exists(local_path) || Directory.Exists(local_path)) { return local_path; }
@@ -34,7 +39,7 @@ namespace Smoothie
         private static string DetectMountType(string path_to_image)
         {
             String extension = Path.GetExtension(path_to_image);
-            if (String.IsNullOrEmpty(extension)) { return "RAW"; }
+            if (Directory.Exists(path_to_image)) { return "RAW"; }
             extension = extension.ToLower();
             switch (extension)
             {
@@ -54,15 +59,20 @@ namespace Smoothie
             String mount_type = DetectMountType(image_filename);
             if (mount_type == "") { return false; }
 
-            // Construct Mountpoint Path
-            Directory.CreateDirectory(mount_path);
+            // Construct Mountpoint Path if not a RAW mount
+            if(mount_type != "RAW")
+            {
+                Directory.CreateDirectory(mount_path);
+            }
+            
             switch (mount_type)
             {
                 case "IMAGE":
                     if (!Virtlib.MountImage(image_path, mount_path)) { return false; }
                     break;
                 case "RAW":
-                    // TODO
+                    // A RAW mount doesn't need a dedicated mount path.
+                    mount_path = image_path;
                     break;
                 case "ZIP":
                     try { ZipFile.ExtractToDirectory(image_path, mount_path); } catch { return false; }
@@ -88,6 +98,7 @@ namespace Smoothie
                     Directory.Delete(path_to_mountpoint, true);
                     break;
                 case "RAW":
+                    // We do nothing because we created nothing.
                     break;
                 case "ZIP":
                     Directory.Delete(path_to_mountpoint, true);
